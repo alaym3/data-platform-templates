@@ -57,6 +57,8 @@ Example migrations:
 
 - `migrations/20260507120000_create_example_table.sql`
 - `migrations/20260507121000_create_users_table.sql`
+- `migrations/20260507123000_create_anime_series.sql`
+- `migrations/20260507125000_create_manga_series.sql`
 
 Each migration file contains separate `up` and `down` blocks:
 
@@ -66,6 +68,18 @@ CREATE TABLE ...;
 
 -- migrate:down
 DROP TABLE ...;
+```
+
+### Migration tracking table
+
+dbmate automatically creates a `schema_migrations` table in your Postgres database to track applied migrations. This table includes:
+
+- `version` (VARCHAR(255) PRIMARY KEY): The migration filename (e.g., `20260507120000`)
+
+The table is created in the current schema (public with our configuration). You can query this table to see applied migration versions:
+
+```sql
+SELECT * FROM public.schema_migrations ORDER BY version DESC;
 ```
 
 Usage:
@@ -84,6 +98,10 @@ A seeded data migration can be added just like a schema migration. The file shou
 Example seed file:
 
 - `migrations/20260507122000_seed_example_data.sql`
+- `migrations/20260507124000_seed_anime_series.sql`
+- `migrations/20260507126000_seed_manga_series.sql`
+
+This is still the recommended way to handle schema and seed data together for this project: the seed file is versioned with the schema and can be rolled back safely.
 
 After creating the file, apply it with:
 
