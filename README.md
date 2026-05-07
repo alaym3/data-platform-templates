@@ -47,20 +47,6 @@ docker compose up -d metabase
 
 This starts the Metabase dashboard and connects it to the `postgres` database.
 
-### Stop services
-
-```bash
-docker compose down
-```
-
-### View logs
-
-```bash
-docker compose logs -f mage
-```
-
-Replace `mage` with `postgres` or `metabase` to view logs from those services.
-
 ## Postgres migrations service
 
 This repo now includes a `dbmate`-based migration service.
@@ -75,10 +61,10 @@ Example migrations:
 Each migration file contains separate `up` and `down` blocks:
 
 ```sql
--- +dbmate up
+-- migrate:up
 CREATE TABLE ...;
 
--- +dbmate down
+-- migrate:down
 DROP TABLE ...;
 ```
 
@@ -94,8 +80,8 @@ The `new` command creates a timestamped migration file in `migrations/`, for exa
 ### How dbmate applies migrations
 
 - `docker compose run --rm migrations up` applies all pending migrations in timestamp order.
-- dbmate reads the `-- +dbmate up` section from each migration file and runs that SQL.
-- `docker compose run --rm migrations rollback` rolls back the most recently applied migration by executing its `-- +dbmate down` section.
+- dbmate reads the `-- migrate:up` section from each migration file and runs that SQL.
+- `docker compose run --rm migrations rollback` rolls back the most recently applied migration by executing its `-- migrate:down` section.
 
 ### Run one migration file specifically
 
@@ -115,6 +101,6 @@ To execute the `down` block for the latest applied migration:
 
 - `docker compose run --rm migrations rollback`
 
-This runs the `-- +dbmate down` section of the most recent migration file.
+This runs the `-- migrate:down` section of the most recent migration file.
 
 If you need to undo a specific migration that is not the most recent, rollback repeatedly until the desired migration is removed.
