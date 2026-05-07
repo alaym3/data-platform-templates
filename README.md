@@ -77,6 +77,26 @@ Usage:
 
 The `new` command creates a timestamped migration file in `migrations/`, for example `migrations/20260507123000_create_email_index.sql`.
 
+## Seed data migration example
+
+A seeded data migration can be added just like a schema migration. The file should contain a `-- migrate:up` section for inserts and a `-- migrate:down` section for cleanup.
+
+Example seed file:
+
+- `migrations/20260507122000_seed_example_data.sql`
+
+After creating the file, apply it with:
+
+```bash
+docker compose run --rm migrations up
+```
+
+If you need to remove the seeded records, use:
+
+```bash
+docker compose run --rm migrations rollback
+```
+
 ### How dbmate applies migrations
 
 - `docker compose run --rm migrations up` applies all pending migrations in timestamp order.
