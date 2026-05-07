@@ -1,0 +1,69 @@
+services:
+  mage:
+    command: mage start ${PROJECT_NAME}
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: mage.Dockerfile
+    environment:
+      USER_CODE_PATH: /home/src/${PROJECT_NAME}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - 6789:6789
+    volumes:
+      - .:/home/src/
+    restart: on-failure:5
+  metabase_custom_image: # only if you need to run mage via the custom Dockerfile based on what instance you're running it on, otherwise you can use the official image as shown in the metabase service below
+    build:
+      context: .
+      dockerfile: metabase.Dockerfile
+    container_name: metabase_custom_image
+    hostname: metabase_custom_image
+    env_file:
+      - .env
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_CONNECTION_URI: jdbc:postgresql://${POSTGRES_HOST}:5432/${MB_DB_DBNAME}?user=${POSTGRES_USER}&password=${POSTGRES_PASSWORD}&currentSchema=public
+    depends_on:
+      - postgres
+    ports:
+      - 3001:3000
+
+  metabase:
+    image: metabase/metabase:v0.55.12
+    container_name: metabase
+    hostname: metabase
+    env_file:
+      - .env
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: postgres
+      MB_DB_PORT: 5432
+      MB_DB_NAME: metabase
+      MB_DB_USER: ${POSTGRES_USER}
+      MB_DB_PASS: ${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+    ports:
+      - 3000:3000
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    hostname: postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432

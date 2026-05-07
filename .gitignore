@@ -1,0 +1,4 @@
+/mage_data/*
+
+# keeping .env inside the repo as an example for users to copy and edit with their own values
+# .env

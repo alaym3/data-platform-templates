@@ -1,0 +1,4 @@
+mage_ai>=0.9.65
+numpy==1.24.4
+pandas>=1.6
+requests==2.31.0
