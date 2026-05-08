@@ -7,7 +7,7 @@ This repository defines the following services in `docker-compose.yml`:
 - `mage` — your Mage project runtime
 - `postgres` — the Postgres database used by Mage and Metabase
 - `metabase` — the Metabase analytics dashboard
-- `migrations` — `dbmate` SQL migrations for Postgres
+- `flyway` — Flyway SQL migrations for Postgres
 
 ### Accessing services
 
@@ -47,57 +47,60 @@ docker compose up -d metabase
 
 This starts the Metabase dashboard and connects it to the `postgres` database.
 
-## Postgres migrations service
+## Flyway migrations service
 
-This repo now includes a `dbmate`-based migration service.
+This repo now includes a `flyway`-based migration service.
 
-Migration files live in `migrations/` and use `dbmate` SQL syntax.
+Migration files live in `migrations/` and use Flyway SQL syntax with versioned filenames.
 
 Example migrations:
 
-- `migrations/20260507120000_create_example_table.sql`
-- `migrations/20260507121000_create_users_table.sql`
+- `migrations/V1__create_schemas.sql`
+- `migrations/V2__create_example_table.sql`
+- `migrations/V3__create_users_table.sql`
+- `migrations/V4__seed_example_data.sql`
 
-Each migration file contains separate `up` and `down` blocks:
+Each migration file contains plain SQL statements. Flyway automatically handles versioning and execution order based on the filename.
 
 ```sql
--- migrate:up
-CREATE TABLE ...;
+CREATE TABLE IF NOT EXISTS public.example_table (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
 
--- migrate:down
-DROP TABLE ...;
+### Migration tracking table
+
+Flyway automatically creates a `flyway_schema_history` table in your Postgres database to track applied migrations. This table includes:
+
+- `installed_rank` (INT): The order of execution
+- `version` (VARCHAR(50)): The version number (e.g., '1', '2')
+- `description` (VARCHAR(200)): The description from the filename (e.g., 'create_example_table')
+- `type` (VARCHAR(20)): 'SQL' for SQL migrations
+- `script` (VARCHAR(1000)): The migration filename
+- `checksum` (INT): Checksum of the migration file
+- `installed_by` (VARCHAR(100)): User who applied the migration
+- `installed_on` (TIMESTAMP): When the migration was applied
+- `execution_time` (INT): Time taken to execute in milliseconds
+- `success` (BOOLEAN): Whether the migration succeeded
+
+The table is created in the current schema (public with our configuration). You can query this table to see applied migrations:
+
+```sql
+SELECT * FROM public.flyway_schema_history ORDER BY installed_rank DESC;
 ```
 
 Usage:
+plain SQL INSERT statements.
 
-- `docker compose run --rm migrations status`
-- `docker compose run --rm migrations up`
-- `docker compose run --rm migrations rollback`
-- `docker compose run --rm migrations new create_email_index`
+Example seed file:
 
-The `new` command creates a timestamped migration file in `migrations/`, for example `migrations/20260507123000_create_email_index.sql`.
+- `migrations/V3_lyway repair` — Repair the schema history table
 
-### How dbmate applies migrations
+For rollback, Flyway supports undo migrations with separate undo scripts (e.g., `U1__undo_create_example_table.sql`). To rollback, create undo scripts and run `docker compose run --rm flyway undo`.
 
-- `docker compose run --rm migrations up` applies all pending migrations in timestamp order.
-- dbmate reads the `-- migrate:up` section from each migration file and runs that SQL.
-- `docker compose run --rm migrations rollback` rolls back the most recently applied migration by executing its `-- migrate:down` section.
-
-### Run one migration file specifically
-
-dbmate does not support applying an arbitrary existing migration file by filename out of order. The normal workflow is:
-
-1. create a new migration:
-   - `docker compose run --rm migrations new create_email_index`
-2. edit the new file in `migrations/`
-3. apply it with:
-   - `docker compose run --rm migrations up`
-
-If the file is the next pending migration, `up` will execute only that file.
-
-### Run a specific file's down segment
-
-To execute the `down` block for the latest applied migration:
+To create a new migration file, manually create a file with the next version number, e.g., `V5__add_email_index.sql`.
 
 - `docker compose run --rm migrations rollback`
 
