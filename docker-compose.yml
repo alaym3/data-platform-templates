@@ -47,24 +47,16 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_PORT: 5432
       POSTGRES_HOST: postgres
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - 5432:5432
-  migrations:
-    image: amacneil/dbmate:latest
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable&search_path=public"
-      DBMATE_MIGRATIONS_DIR: /migrations
-      DBMATE_WAIT: true
-    volumes:
-      - ./migrations:/migrations
-    depends_on:
-      - postgres
-    entrypoint: ["dbmate"]
-    command: status
+  flyway:
+      image: flyway/flyway:10
+      container_name: flyway
+      command: -url=jdbc:postgresql://postgres:5432/postgres -user=postgres -password=postgres -connectRetries=10 migrate
+      volumes:
+        - ./migrations:/flyway/sql
+      depends_on:
+        - postgres
   # metabase_custom_image: # only if you need to run mage via the custom Dockerfile based on what instance you're running it on, otherwise you can use the official image as shown in the metabase service below
   #   build:
   #     context: .
